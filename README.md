@@ -22,17 +22,31 @@ baldecash-prueba/
 ├── apps/
 │   ├── backend/
 │   │   ├── prisma/
-│   │   │   ├── migrations/       # Migraciones 
-│   │   │   ├── schema.prisma     # Esquema de base de 
-│   │   │   ├── seed.ts           # Datos iniciales de 
-│   │   │   ├── prisma.service.ts # Servicio NestJS para 
-│   │   │   └── prisma.module.ts  # Módulo global de 
+│   │   │   ├── migrations/       # Migraciones versionadas
+│   │   │   ├── schema.prisma     # Esquema de base de datos
+│   │   │   └── seed.ts           # Datos iniciales de prueba
 │   │   ├── src/
+│   │   │   ├── common/
+│   │   │   │   ├── filters/
+│   │   │   │   │   └── http-exception.filter.ts  # Filtro global de errores
+│   │   │   │   └── pipes/
+│   │   │   │       └── validation.pipe.ts        # Pipe de validación HTTP 422
+│   │   │   ├── database/
+│   │   │   │   ├── prisma.module.ts              # Módulo global de Prisma
+│   │   │   │   └── prisma.service.ts             # Servicio NestJS para Prisma
+│   │   │   ├── modules/
+│   │   │   │   └── requests/
+│   │   │   │       ├── dto/
+│   │   │   │       │   ├── create-request.dto.ts
+│   │   │   │       │   └── query-requests.dto.ts
+│   │   │   │       ├── entities/
+│   │   │   │       │   └── request.entity.ts
+│   │   │   │       ├── requests.controller.ts
+│   │   │   │       ├── requests.service.ts
+│   │   │   │       └── requests.module.ts
 │   │   │   ├── app.module.ts
-│   │   │   ├── app.controller.ts
-│   │   │   ├── app.service.ts
 │   │   │   └── main.ts
-│   │   ├── prisma7.config.ts     # Configuración de 
+│   │   ├── prisma7.config.ts     # Configuración de Prisma
 │   │   ├── .env
 │   │   └── package.json
 │   │
@@ -47,6 +61,7 @@ baldecash-prueba/
 ├── pnpm-workspace.yaml
 ├── pnpm-lock.yaml
 ├── opencode.json
+├── AGENT.md
 └── README.md
 ```
 
@@ -192,6 +207,148 @@ Scripts específicos del backend:
 | `pnpm --filter backend lint`           | Ejecutar linter (oxlint)         |
 | `pnpm --filter backend test`           | Ejecutar pruebas con Jest        |
 
+## API
+
+### Crear una solicitud
+
+```http
+POST /solicitudes
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "nombres": "Ana María",
+  "apellidos": "Pérez Quispe",
+  "dni": "71234567",
+  "correo": "ana.perez@example.com",
+  "telefono": "987654321",
+  "monto": 3000,
+  "plazo": 12
+}
+```
+
+Respuesta `201`:
+
+```json
+{
+  "id": "uuid",
+  "nombres": "Ana María",
+  "apellidos": "Pérez Quispe",
+  "dni": "71234567",
+  "correo": "ana.perez@example.com",
+  "telefono": "987654321",
+  "monto": 3000,
+  "plazo": 12,
+  "cuotaMensual": 283.68,
+  "estado": "pendiente",
+  "createdAt": "2026-09-20T14:00:00.000Z",
+  "updatedAt": "2026-09-20T14:00:00.000Z"
+}
+```
+
+### Listar solicitudes
+
+```http
+GET /solicitudes?page=1&limit=10&estado=pendiente
+```
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `page` | number | Número de página. Por defecto: `1` |
+| `limit` | number | Registros por página. Por defecto: `10` |
+| `estado` | string | `pendiente`, `aprobada` o `rechazada` |
+
+Respuesta `200`:
+
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "nombres": "Ana María",
+      "apellidos": "Pérez Quispe",
+      "dni": "71234567",
+      "correo": "ana.perez@example.com",
+      "telefono": "987654321",
+      "monto": 3000,
+      "plazo": 12,
+      "cuotaMensual": 283.68,
+      "estado": "pendiente",
+      "createdAt": "2026-09-20T14:00:00.000Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+## Validaciones
+
+La API aplica las siguientes validaciones:
+
+- **DNI:** exactamente 8 dígitos numéricos
+- **Correo:** formato email válido
+- **Teléfono:** 9 dígitos que empiecen en 9
+- **Monto:** entre 1,000 y 10,000
+- **Plazo:** 6, 12, 18 o 24 meses
+- **Estado:** pendiente, aprobada o rechazada
+
+Los errores de validación responden con HTTP **422**:
+
+```json
+{
+  "statusCode": 422,
+  "message": "Error de validación",
+  "errors": [
+    {
+      "field": "dni",
+      "message": "El DNI debe contener exactamente 8 dígitos"
+    },
+    {
+      "field": "monto",
+      "message": "El monto debe estar entre S/ 1,000 y S/ 10,000"
+    }
+  ],
+  "timestamp": "2026-09-20T14:00:00.000Z",
+  "path": "/solicitudes"
+}
+```
+
+Los errores no controlados son procesados por un filtro global para evitar exponer trazas o detalles internos al consumidor de la API.
+
+## Cálculo de la cuota
+
+Se utiliza el sistema de amortización francés, con una tasa anual fija del `24%`.
+
+La tasa mensual se obtiene de la siguiente forma:
+
+```text
+i = 0.24 / 12 = 0.02
+```
+
+La fórmula aplicada es:
+
+```text
+cuota = P × (i × (1 + i)^n) / ((1 + i)^n - 1)
+```
+
+Donde:
+
+- `P` = monto financiado
+- `n` = cantidad de meses
+- `i` = tasa de interés mensual
+
+**Ejemplo:** S/ 3,000 a 12 meses → cuota = S/ 283.68
+
+La cuota se redondea a dos decimales y se almacena como `Decimal` en la base de datos para evitar problemas de precisión.
+
 ## Estado actual
 
 ### Completado
@@ -202,12 +359,13 @@ Scripts específicos del backend:
 - [x] Seed con 3 solicitudes de prueba
 - [x] Configuración de NestJS con Prisma y ConfigModule
 - [x] Servicio Prisma con pool de conexiones
+- [x] API REST de solicitudes (POST y GET)
+- [x] Validaciones de entrada (DTOs con class-validator)
+- [x] Filtro global de errores HTTP 422
+- [x] Cálculo de cuota mensual (sistema francés)
 
 ### Pendiente
 
-- [ ] API REST de solicitudes (crear, listar, filtrar)
-- [ ] Validaciones de entrada (DTOs con class-validator)
-- [ ] Filtro global de errores
 - [ ] Frontend: formulario de registro de solicitudes
 - [ ] Frontend: listado con paginación y filtros
 - [ ] Pruebas unitarias del cálculo de cuota
