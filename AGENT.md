@@ -431,6 +431,42 @@ El esquema se crea y modifica mediante migraciones de Prisma. No se utiliza SQL 
 
 Esto permite reproducir el esquema en un entorno limpio y mantener el historial de cambios de la base de datos.
 
+## Convenciones de nomenclatura
+
+### Código en inglés
+
+Todo el código fuente debe escribirse en inglés:
+
+- **Variables:** `monthlyPayment`, `annualRate`, `requestStatus`
+- **Funciones:** `calculateMonthlyPayment()`, `createRequest()`, `findAllRequests()`
+- **Clases:** `RequestService`, `RequestController`, `PrismaService`
+- **Interfaces/Types:** `CreateRequestDto`, `RequestResponse`, `PaginatedResult`
+- **Enums:** `RequestStatus` (valores: `pending`, `approved`, `rejected`)
+- **Archivos:** `request.service.ts`, `request.controller.ts`
+- **Rutas API:** `/requests` (no `/solicitudes`)
+- **Tags de Swagger:** `Requests`
+
+### Mensajes en español
+
+Los textos visibles para el usuario deben estar en español:
+
+- **Mensajes de error de validación:** "El DNI debe contener exactamente 8 dígitos"
+- **Mensajes de error del servidor:** "Error al crear la solicitud"
+- **Toasts/notificaciones:** "Solicitud creada exitosamente"
+- **Textos de la interfaz:** "Nuevo préstamo", "Detalle del préstamo"
+- **Placeholders:** "Ingrese su DNI", "Correo electrónico"
+- **Estados en UI:** "Pendiente", "Aprobada", "Rechazada"
+
+### Ejemplo de coherencia
+
+```typescript
+// Variable y función en inglés
+const requestStatus: RequestStatus = 'pending';
+
+// Mensaje de error en español
+throw new BadRequestException('El monto debe estar entre S/ 1,000 y S/ 10,000');
+```
+
 ## Pruebas
 
 Ejecuta todas las pruebas con:
