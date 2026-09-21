@@ -6,15 +6,16 @@ import {
   Matches,
   Max,
   Min,
+  MinLength,
 } from 'class-validator';
 
 export class CreateRequestDto {
   @IsString()
-  @Min(1, { message: 'Los nombres no pueden estar vacíos' })
+  @MinLength(1, { message: 'Los nombres no pueden estar vacíos' })
   nombres: string;
 
   @IsString()
-  @Min(1, { message: 'Los apellidos no pueden estar vacíos' })
+  @MinLength(1, { message: 'Los apellidos no pueden estar vacíos' })
   apellidos: string;
 
   @IsString()

@@ -51,10 +51,27 @@ baldecash-prueba/
 │   │   └── package.json
 │   │
 │   └── frontend/
-│       ├── src/app/
-│       │   ├── page.tsx
-│       │   ├── layout.tsx
-│       │   └── globals.css
+│       ├── src/
+│       │   ├── app/
+│       │   │   ├── page.tsx                # Formulario de solicitud
+│       │   │   ├── layout.tsx              # Layout con navegación
+│       │   │   ├── globals.css
+│       │   │   └── solicitudes/
+│       │   │       └── page.tsx            # Listado de solicitudes
+│       │   ├── components/
+│       │   │   ├── navigation.tsx
+│       │   │   ├── loan-request-form.tsx
+│       │   │   ├── request-list.tsx
+│       │   │   └── ui/                     # button, input, select, toast
+│       │   └── lib/
+│       │       ├── api.ts                  # Cliente HTTP
+│       │       ├── types.ts
+│       │       └── schemas/
+│       │           └── loan-request.schema.ts
+│       ├── next.config.ts
+│       ├── postcss.config.mjs
+│       ├── eslint.config.mjs
+│       ├── tsconfig.json
 │       └── package.json
 │
 ├── package.json
@@ -81,14 +98,22 @@ pnpm install
 
 ### 2. Configurar variables de entorno
 
-**Backend** — crea el archivo `apps/backend/.env`:
+Copia los archivos `.env.example` como plantilla y ajusta los valores:
 
-```env
-DATABASE_URL="postgresql://postgres:123456@localhost:5432/baldecash?schema=public"
-PORT=3001
+```bash
+cp apps/backend/.env.example apps/backend/.env
+cp apps/frontend/.env.example apps/frontend/.env.local
 ```
 
-**Frontend** — crea el archivo `apps/frontend/.env.local`:
+**Backend** — `apps/backend/.env`:
+
+```env
+PORT=3001
+FRONTEND_URL="http://localhost:3000"
+DATABASE_URL="postgresql://postgres:123456@localhost:5432/baldecash?schema=public"
+```
+
+**Frontend** — `apps/frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL="http://localhost:3001"
@@ -207,6 +232,14 @@ Scripts específicos del backend:
 | `pnpm --filter backend lint`           | Ejecutar linter (oxlint)         |
 | `pnpm --filter backend test`           | Ejecutar pruebas con Jest        |
 
+Scripts específicos del frontend:
+
+| Comando                          | Descripción                          |
+|----------------------------------|--------------------------------------|
+| `pnpm --filter frontend dev`     | Ejecutar frontend en modo desarrollo |
+| `pnpm --filter frontend build`    | Compilar el frontend (Next.js)       |
+| `pnpm --filter frontend lint`     | Ejecutar linter (ESLint)             |
+
 ## API
 
 ### Crear una solicitud
@@ -289,6 +322,27 @@ Respuesta `200`:
 }
 ```
 
+## Frontend
+
+### Formulario de solicitud (`/`)
+
+El formulario permite registrar una solicitud con los campos DNI, nombres, apellidos, correo, teléfono, monto (S/ 1,000 – S/ 10,000) y plazo (6, 12, 18 o 24 meses).
+
+- Validación en el cliente con **Zod** (esquema compartido en `src/lib/schemas/loan-request.schema.ts`).
+- Muestra en vivo un resumen con el monto, el plazo y la **cuota estimada** (sistema francés, 2% mensual).
+- Envía los datos a `POST /solicitudes`; al enviarse se desactiva el botón y se muestra un toast.
+- Si el backend rechaza la solicitud, el toast muestra los mensajes reales del `422` (p. ej. "El DNI debe contener exactamente 8 dígitos · La cuota ...").
+- Al enviarse correctamente, redirige automáticamente a `/solicitudes`.
+
+### Listado de solicitudes (`/solicitudes`)
+
+El listado consume `GET /solicitudes` y muestra una tabla con las columnas **Solicitud**, **Persona**, **Monto**, **Plazo** y **Cuota Mensual**.
+
+- **Filtros por estado:** Todas, Pendiente, Aprobada o Rechazada.
+- **Paginación:** selector de filas por página (8, 25, 50 o 100) y controles de página basados en `meta.page`/`meta.totalPages` (se muestran cuando hay más de una página).
+- Maneja estados de **carga**, **tabla vacía** y **error de red** con mensajes claros.
+- La navegación entre el formulario y el listado está disponible en el menú superior a través de `src/components/navigation.tsx`.
+
 ## Validaciones
 
 La API aplica las siguientes validaciones:
@@ -363,13 +417,13 @@ La cuota se redondea a dos decimales y se almacena como `Decimal` en la base de 
 - [x] Validaciones de entrada (DTOs con class-validator)
 - [x] Filtro global de errores HTTP 422
 - [x] Cálculo de cuota mensual (sistema francés)
+- [x] Frontend: formulario de registro de solicitudes
+- [x] Frontend: listado con paginación y filtros
+- [x] Integración frontend-backend (envío de datos y consulta de solicitudes)
 
 ### Pendiente
 
-- [ ] Frontend: formulario de registro de solicitudes
-- [ ] Frontend: listado con paginación y filtros
 - [ ] Pruebas unitarias del cálculo de cuota
-- [ ] Integración frontend-backend
 
 ## Uso de IA
 
