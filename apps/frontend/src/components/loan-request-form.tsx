@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loanRequestSchema, LoanRequestFormData, plazoOptions } from '@/lib/schemas/loan-request.schema';
 import { createRequest } from '@/lib/api';
+import { ApiErrorResponse } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,7 @@ export function LoanRequestForm() {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors },
   } = useForm<LoanRequestFormData>({
     resolver: zodResolver(loanRequestSchema),
@@ -38,9 +39,9 @@ export function LoanRequestForm() {
     },
   });
 
-  const montoValue = watch('monto');
-  const plazoValue = watch('plazo');
-
+  const montoValue = useWatch({ control, name: 'monto' });
+  const plazoValue = useWatch({ control, name: 'plazo' });
+  
   const onSubmit = async (data: LoanRequestFormData) => {
     setIsSubmitting(true);
     try {
@@ -61,9 +62,18 @@ export function LoanRequestForm() {
       window.setTimeout(() => {
         router.push('/solicitudes');
       }, 1200);
-    } catch {
+    } catch (error) {
+      const apiError = error as Partial<ApiErrorResponse>;
+      let message = 'Error al enviar la solicitud. Intente nuevamente.';
+      if (apiError && typeof apiError === 'object') {
+        if (apiError.errors && apiError.errors.length > 0) {
+          message = apiError.errors.map((err) => err.message).join(' · ');
+        } else if (typeof apiError.message === 'string') {
+          message = apiError.message;
+        }
+      }
       setToast({
-        message: 'Error al enviar la solicitud. Intente nuevamente.',
+        message,
         visible: true,
         type: 'error',
       });

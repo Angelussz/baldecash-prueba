@@ -25,13 +25,6 @@ export function Toast({ message, type = 'success', visible, onClose, duration = 
       }
     };
   }, [visible, duration, onClose]);
-
-  const iconMap = {
-    success: 'check_circle',
-    error: 'error',
-    info: 'info',
-  };
-
   const colorMap = {
     success: 'text-brand-green',
     error: 'text-error',
@@ -45,7 +38,6 @@ export function Toast({ message, type = 'success', visible, onClose, duration = 
       }`}
     >
       <span className={`material-symbols-outlined text-[20px] ${colorMap[type]}`}>
-        {iconMap[type]}
       </span>
       <span className="text-sm">{message}</span>
     </div>
