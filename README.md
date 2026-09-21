@@ -120,7 +120,11 @@ NEXT_PUBLIC_API_URL="http://localhost:3001"
 ```
 
 ### 3. Base de datos
+Generar el cliente de Prisma:
 
+```bash
+pnpm --filter backend prisma:generate
+```
 Ejecuta las migraciones para crear las tablas:
 
 ```bash
